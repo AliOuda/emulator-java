@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class Emulator {
     private JToggleButton listenBtn;
@@ -161,6 +162,7 @@ public class Emulator {
     }
 
     private void initializeControls(JSONObject message) {
+        if (message.has("Control")) {return;}
         JSONArray surgicalTools = message.getJSONArray("SurgicalTools");
         JSONObject anatomy = message.getJSONObject("Anatomy");
         controlBoard.addUnitControl(anatomy.getString("Name"));
@@ -188,16 +190,20 @@ public class Emulator {
             // Parse the message as a JSON object
             JSONObject jsonObject = new JSONObject(message);
 
-            // Check if all required keys are present
-            for (String key : requiredKeys) {
-                if (!jsonObject.has(key)) {
-                    showMessage("Missing key: " + key + "\n");
-                    return false;  // Key is missing
-                }
+            // Collect missing keys
+            Set<String> missingKeys = requiredKeys.stream()
+                    .filter(key -> !jsonObject.has(key))
+                    .collect(Collectors.toSet());
+
+            // Check for missing keys
+            if (!missingKeys.isEmpty() && !jsonObject.has("Control")) {
+                showMessage("Missing keys: " + String.join(", ", missingKeys) + "\n");
+                return false;  // Keys are missing
             }
+
             return true;  // All required keys are present
         } catch (JSONException ex) {
-            showMessage("Invalid JSON format: " + ex.getMessage());
+            showMessage("Invalid JSON format: " + ex.getMessage() + " in message: " + message);
             return false;  // Invalid JSON
         }
     }
